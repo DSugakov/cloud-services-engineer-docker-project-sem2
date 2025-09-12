@@ -36,14 +36,14 @@ jobs:
         - name: Scan backend image with Trivy
           run: trivy image --exit-code 0 --severity HIGH,CRITICAL ${{ secrets.DOCKER_USER }}/docker-project-backend:latest | tee trivy-backend.txt
         - name: Upload Trivy backend report
-          uses: actions/upload-artifact@v3
+          uses: actions/upload-artifact@v4
           with:
             name: trivy-backend
             path: trivy-backend.txt
         - name: Scan frontend image with Trivy
           run: trivy image --exit-code 0 --severity HIGH,CRITICAL ${{ secrets.DOCKER_USER }}/docker-project-frontend:latest | tee trivy-frontend.txt
         - name: Upload Trivy frontend report
-          uses: actions/upload-artifact@v3
+          uses: actions/upload-artifact@v4
           with:
             name: trivy-frontend
             path: trivy-frontend.txt
@@ -58,3 +58,9 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: Build via Docker Compose
         uses: hoverkraft-tech/compose-action@v2.2.0
+        env:
+          COMPOSE_PROFILES: prod
+        with:
+          services: |
+            backend
+            frontend

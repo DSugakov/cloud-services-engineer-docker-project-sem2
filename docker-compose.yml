@@ -1,0 +1,133 @@
+version: "3.9"
+
+services:
+  # Load balancer for horizontal scaling
+  nginx-lb:
+    image: nginx:1.25-alpine
+    container_name: nginx-lb
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx-lb.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+    networks:
+      - app
+    profiles:
+      - prod
+      - scale
+
+  backend:
+    build:
+      context: ./backend
+    image: ${DOCKER_USER:-local}/docker-project-backend:latest
+    container_name: momo-backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    ports:
+      - "8081:8081"
+    networks:
+      - app
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+    profiles:
+      - prod
+      - dev
+      - scale
+    secrets:
+      - api_key
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VUE_APP_API_URL=http://backend:8081
+    image: ${DOCKER_USER:-local}/docker-project-frontend:latest
+    container_name: momo-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    volumes:
+      - frontend_logs:/var/log/nginx
+    ports:
+      - "80:80"
+    networks:
+      - app
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+    profiles:
+      - prod
+      - dev
+      - scale
+
+  # Development services
+  backend-dev:
+    build:
+      context: ./backend
+    image: ${DOCKER_USER:-local}/docker-project-backend:dev
+    container_name: momo-backend-dev
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    networks:
+      - app
+    volumes:
+      - ./backend:/src
+    working_dir: /src
+    command: ["go", "run", "./cmd/api"]
+    profiles:
+      - dev
+
+  frontend-dev:
+    build:
+      context: ./frontend
+      target: build
+    image: ${DOCKER_USER:-local}/docker-project-frontend:dev
+    container_name: momo-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    working_dir: /app
+    command: ["npm", "run", "serve", "--", "--port", "8080", "--host", "0.0.0.0"]
+    environment:
+      - VUE_APP_API_URL=http://backend-dev:8081
+    profiles:
+      - dev
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  frontend_logs:
+    driver: local
+
+secrets:
+  api_key:
+    file: ./secrets/api_key.txt

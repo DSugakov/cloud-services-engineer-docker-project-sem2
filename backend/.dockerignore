@@ -1,0 +1,22 @@
+# VCS
+.git
+.gitignore
+
+# Binaries
+/out
+bin
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Build cache
+*.log
+coverage*
+
+# IDE
+.vscode
+.idea
+*.swp
+.DS_Store

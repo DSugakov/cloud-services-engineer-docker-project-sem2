@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install deps (cache layer)
 COPY package*.json ./
-RUN npm ci && npm cache clean --force
+RUN npm ci --include=dev && npm cache clean --force
 
 # Accept API URL at build time
 ARG VUE_APP_API_URL=http://localhost:8081

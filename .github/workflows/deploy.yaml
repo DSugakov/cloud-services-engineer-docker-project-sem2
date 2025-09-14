@@ -61,6 +61,4 @@ jobs:
         env:
           COMPOSE_PROFILES: prod
         with:
-          services: |
-            backend
-            frontend
+          services: backend,frontend
